@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Bank | Complaint Intelligence Command Center</title>
+    <link rel="stylesheet" href="/static/shared/css/variables.css">
+    <link rel="stylesheet" href="/static/dashboard/style.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+</head>
+<body data-theme="dark">
+    <!-- Glow backdrops -->
+    <div class="glow-container">
+        <div class="glow-sphere glow-1"></div>
+        <div class="glow-sphere glow-2"></div>
+    </div>
+
+    <div class="app-layout">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="brand">
+                <i data-lucide="cpu" class="brand-icon"></i>
+                <div class="brand-info">
+                    <span class="brand-title">APEX INSIGHT</span>
+                    <span class="brand-subtitle">COMPLAINT AI v1.0</span>
+                </div>
+            </div>
+            
+            <nav class="nav-menu">
+                <button class="nav-item active" data-tab="overview">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Overview</span>
+                </button>
+                <button class="nav-item" data-tab="drilldown">
+                    <i data-lucide="tag"></i>
+                    <span>Topics Drill-down</span>
+                </button>
+                <button class="nav-item" data-tab="feed">
+                    <i data-lucide="activity"></i>
+                    <span>Real-time Stream</span>
+                    <span class="pulse-dot" style="display:none;"></span>
+                </button>
+            </nav>
+            
+            <div class="sidebar-footer">
+                <div class="theme-toggle-container">
+                    <span class="theme-label"><i data-lucide="sun"></i> Light / Dark</span>
+                    <label class="switch">
+                        <input type="checkbox" id="themeToggle" checked>
+                        <span class="slider round"></span>
+                    </label>
+                </div>
+                <a href="/submit" class="submit-portal-btn" target="_blank">
+                    <i data-lucide="external-link"></i>
+                    <span>Complaint Form</span>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Dashboard Container -->
+        <main class="dashboard-body">
+            <!-- Header bar -->
+            <header class="dashboard-header">
+                <div class="header-info">
+                    <h1>Banking Complaint Intelligence</h1>
+                    <p id="systemStatusText">Real-time Operations Monitoring & AI Analysis</p>
+                </div>
+                <div class="header-actions">
+                    <button id="retrainBtn" class="action-btn secondary-btn" title="Run BERTopic dynamic clustering logic again">
+                        <i data-lucide="refresh-cw"></i>
+                        <span>Retrain AI Topics</span>
+                    </button>
+                    <button id="exportCsvBtn" class="action-btn primary-btn">
+                        <i data-lucide="download"></i>
+                        <span>Export CSV</span>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Spike Alert Banner -->
+            <div id="spikeAlertBanner" class="spike-alert-banner" style="display: none;">
+                <div class="alert-content">
+                    <i data-lucide="zap"></i>
+                    <span><strong>Anomaly Alert:</strong> Multiple complaints detected in short period! Inbound queues are spiking.</span>
+                </div>
+            </div>
+
+            <!-- TAB 1: OVERVIEW -->
+            <section id="tab-overview" class="tab-pane active">
+                <!-- Metrics counters -->
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-label">Total Ingested</span>
+                            <h2 id="metricTotal">0</h2>
+                        </div>
+                        <div class="metric-icon bg-blue"><i data-lucide="folder-closed"></i></div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-label">Active (Last 2h)</span>
+                            <h2 id="metricLive">0</h2>
+                            <span class="live-indicator"><span class="ring"></span>Live</span>
+                        </div>
+                        <div class="metric-icon bg-teal"><i data-lucide="activity"></i></div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-info">
+                            <span class="metric-label">Avg Intensity</span>
+                            <h2 id="metricIntensity">0.0</h2>
+                            <div class="progress-bar-container">
+                                <div id="intensityProgressBar" class="progress-bar" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="metric-icon bg-amber"><i data-lucide="gauge"></i></div>
+                    </div>
+
+                    <div class="metric-card" id="insightsCard">
+                        <div class="metric-info full-width">
+                            <span class="metric-label">System Anomaly Monitor</span>
+                            <div id="anomalyStatus" class="anomaly-status normal">
+                                <i data-lucide="check-circle-2"></i>
+                                <span>No spike detected</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Filters Control Box -->
+                <div class="filter-panel">
+                    <div class="panel-header">
+                        <h3><i data-lucide="sliders-horizontal"></i> Search & Filters</h3>
+                        <button id="resetFiltersBtn" class="clear-btn">Clear All</button>
+                    </div>
+                    <div class="filter-grid">
+                        <div class="filter-group search-box">
+                            <input type="text" id="filterSearch" placeholder="Search keywords...">
+                            <i data-lucide="search" class="search-icon"></i>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <select id="filterTopic">
+                                <option value="">All Dynamic Topics</option>
+                            </select>
+                        </div>
+                        
+                        <div class="filter-group">
+                            <select id="filterSeverity">
+                                <option value="">All Severities</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                                <option value="critical">Critical</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <select id="filterUserType">
+                                <option value="">All Customer Tiers</option>
+                                <option value="regular">Regular Savings</option>
+                                <option value="premium">Premium/Platinum</option>
+                                <option value="business">Corporate/Business</option>
+                                <option value="senior citizen">Senior Citizen</option>
+                                <option value="student">Student Account</option>
+                            </select>
+                        </div>
+
+                        <div class="filter-group">
+                            <select id="filterSource">
+                                <option value="">All Inbound Channels</option>
+                                <option value="mobile app">Mobile Banking App</option>
+                                <option value="website">Web Portal</option>
+                                <option value="offline">In-Branch / Physical ATM</option>
+                                <option value="email">Support Email</option>
+                                <option value="social media">Social Media Handle</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts layout -->
+                <div class="charts-row">
+                    <div class="chart-container large-chart">
+                        <h3>Inbound Complaint Volume Trend</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container small-chart">
+                        <h3>Primary Pain Points (Topics)</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="topicsChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="charts-row">
+                    <div class="chart-container">
+                        <h3>Sentiment Breakdown</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="sentimentChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Severity Breakdown</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="severityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Ingress Channels</h3>
+                        <div class="chart-wrapper">
+                            <canvas id="sourceChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Insights Block -->
+                <div class="insights-container">
+                    <div class="insights-header">
+                        <i data-lucide="sparkles" class="insight-icon"></i>
+                        <h3>AI Operations Insights Summary</h3>
+                    </div>
+                    <ul id="insightsList" class="insights-list">
+                        <li>Loading operations heuristics analytics...</li>
+                    </ul>
+                </div>
+
+                <!-- Data Table Panel -->
+                <div class="data-table-panel">
+                    <div class="panel-header">
+                        <h3>Ingested Complaints Ledger</h3>
+                        <span id="ledgerCountText" class="ledger-count">Showing 0 complaints</span>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="ledger-table">
+                            <thead>
+                                <tr>
+                                    <th class="sortable" data-sort-by="date">
+                                        <div class="header-sort-container">
+                                            <button class="sort-btn" aria-label="Sort by Date">
+                                                <i data-lucide="arrow-up-down"></i>
+                                            </button>
+                                            <span>Date</span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-sort-by="user_type">
+                                        <div class="header-sort-container">
+                                            <button class="sort-btn" aria-label="Sort by Client Tier">
+                                                <i data-lucide="arrow-up-down"></i>
+                                            </button>
+                                            <span>Client Tier</span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-sort-by="topic_label">
+                                        <div class="header-sort-container">
+                                            <button class="sort-btn" aria-label="Sort by Topic Label">
+                                                <i data-lucide="arrow-up-down"></i>
+                                            </button>
+                                            <span>Topic Label</span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-sort-by="ai_summary">
+                                        <div class="header-sort-container">
+                                            <button class="sort-btn" aria-label="Sort by Abstract">
+                                                <i data-lucide="arrow-up-down"></i>
+                                            </button>
+                                            <span>Complaint Abstract</span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-sort-by="severity">
+                                        <div class="header-sort-container">
+                                            <button class="sort-btn" aria-label="Sort by Severity">
+                                                <i data-lucide="arrow-up-down"></i>
+                                            </button>
+                                            <span>Severity</span>
+                                        </div>
+                                    </th>
+                                    <th class="sortable" data-sort-by="intensity_score">
+                                        <div class="header-sort-container">
+                                            <button class="sort-btn" aria-label="Sort by Intensity">
+                                                <i data-lucide="arrow-up-down"></i>
+                                            </button>
+                                            <span>Intensity</span>
+                                        </div>
+                                    </th>
+                                    <th class="actions-header">Analysis</th>
+                                </tr>
+                            </thead>
+                            <tbody id="ledgerTableBody">
+                                <!-- Skeleton rows during loading -->
+                                <tr class="skeleton-row"><td colspan="7"></td></tr>
+                                <tr class="skeleton-row"><td colspan="7"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <!-- Pagination footer -->
+                    <div class="pagination-footer">
+                        <button id="prevPageBtn" class="pag-btn" disabled><i data-lucide="chevron-left"></i> Prev</button>
+                        <span id="pageIndicator" class="page-indicator">Page 1 of 1</span>
+                        <button id="nextPageBtn" class="pag-btn" disabled>Next <i data-lucide="chevron-right"></i></button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: TOPICS DRILLDOWN -->
+            <section id="tab-drilldown" class="tab-pane">
+                <div class="drilldown-header">
+                    <h2>Dynamic Topic Clusters</h2>
+                    <p>Calculated dynamically using SentenceTransformer embeddings clustered via HDBSCAN/KMeans and labeled by Mistral. Select a cluster to inspect keywords and representative documents.</p>
+                </div>
+                <div class="drilldown-grid">
+                    <div class="drilldown-sidebar" id="drilldownTopicsList">
+                        <!-- Loaded dynamically -->
+                    </div>
+                    <div class="drilldown-details" id="drilldownDetailsContainer">
+                        <div class="drilldown-empty-state">
+                            <i data-lucide="target" class="empty-icon"></i>
+                            <h4>Select a Topic Cluster</h4>
+                            <p>Choose one of the discovered topics on the left to drill-down into analysis metrics, top keywords, and matching customer complaints.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 3: REAL-TIME STREAM -->
+            <section id="tab-feed" class="tab-pane">
+                <div class="stream-header">
+                    <h2>Live Inbound Activity Feed</h2>
+                    <p>New support submissions appear in real-time below via WebSocket connection. Alerts automatically flash red when critical issues are ingested.</p>
+                </div>
+                <div class="stream-container">
+                    <div class="stream-logs" id="liveStreamLogs">
+                        <div class="log-empty-state">
+                            <i data-lucide="radio" class="pulse-feed-icon"></i>
+                            <h4>Listening for digital transactions...</h4>
+                            <p>WebSocket pipeline connected. Real-time customer complaints will stream directly onto this feed upon submission.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- IMERSIVE AI DETAIL MODAL -->
+    <div id="detailModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <header class="modal-header">
+                <div class="modal-title-area">
+                    <span id="modalTopicBadge" class="modal-topic-badge">UPI Failure</span>
+                    <h2 id="modalTitle">Complaint Details</h2>
+                </div>
+                <button id="closeModalBtn" class="modal-close-btn"><i data-lucide="x"></i></button>
+            </header>
+            
+            <div class="modal-body-scroll">
+                <!-- Row 1: Original text & meta -->
+                <div class="modal-row">
+                    <div class="modal-box text-box">
+                        <h3>Original Customer Submission</h3>
+                        <p id="modalOriginalText" class="scroll-text">Customer complaint text goes here...</p>
+                    </div>
+                    
+                    <div class="modal-box meta-box">
+                        <h3>Metadata Overview</h3>
+                        <div class="meta-item-grid">
+                            <div class="meta-field">
+                                <span class="meta-lbl">Client Tier</span>
+                                <span id="modalUserType" class="meta-val capitalize font-bold">Premium</span>
+                            </div>
+                            <div class="meta-field">
+                                <span class="meta-lbl">Inbound Channel</span>
+                                <span id="modalSource" class="meta-val capitalize">Mobile App</span>
+                            </div>
+                            <div class="meta-field">
+                                <span class="meta-lbl">Reported Date</span>
+                                <span id="modalDate" class="meta-val">2026-05-21</span>
+                            </div>
+                            <div class="meta-field">
+                                <span class="meta-lbl">Reported Time</span>
+                                <span id="modalTime" class="meta-val">14:10:00</span>
+                            </div>
+                            <div class="meta-field">
+                                <span class="meta-lbl">Location/Branch</span>
+                                <span id="modalLocation" class="meta-val">New York City</span>
+                            </div>
+                            <div class="meta-field">
+                                <span class="meta-lbl">Database UID</span>
+                                <span id="modalID" class="meta-val font-mono select-all">UUID-12345</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 2: Sentiment, Intensity, Severity Dial Gauges -->
+                <div class="modal-row count-3">
+                    <div class="modal-box gauge-card">
+                        <span class="card-lbl">Sentiment Evaluation</span>
+                        <div class="gauge-display">
+                            <div id="modalSentimentIcon" class="gauge-face-icon negative"><i data-lucide="smile"></i></div>
+                            <div class="gauge-numbers">
+                                <span id="modalSentimentLabel" class="gauge-title-label font-bold">NEGATIVE</span>
+                                <span id="modalSentimentScore" class="gauge-detail-score">Confidence: 98%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-box gauge-card">
+                        <span class="card-lbl">Urgency Intensity rating</span>
+                        <div class="gauge-display flex-col">
+                            <span id="modalIntensityValue" class="gauge-score-value font-mono">0.85 / 1.0</span>
+                            <div class="progress-bar-container large">
+                                <div id="modalIntensityBar" class="progress-bar" style="width: 85%"></div>
+                            </div>
+                            <span class="sub-gauge-text">Derived from keywords, capitalization and symbols.</span>
+                        </div>
+                    </div>
+
+                    <div class="modal-box gauge-card">
+                        <span class="card-lbl">Routed Severity Class</span>
+                        <div id="modalSeverityCard" class="severity-badge-large critical">
+                            <i data-lucide="shield-alert"></i>
+                            <span id="modalSeverityLabelText">CRITICAL</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Row 3: AI summaries, department and solving steps -->
+                <div class="modal-row">
+                    <div class="modal-box span-2">
+                        <h3>AI-Generated Summary</h3>
+                        <p id="modalAISummary" class="ai-derived-text">Loading...</p>
+                        
+                        <div class="horizontal-divider"></div>
+                        
+                        <h3>Operations Root Cause Analysis</h3>
+                        <p id="modalRootCause" class="ai-derived-text">Loading...</p>
+                    </div>
+
+                    <div class="modal-box flex-col">
+                        <h3>Dynamic Routing Dispatch</h3>
+                        <div class="dept-route-card">
+                            <span class="dept-lbl">Target operations desk</span>
+                            <span id="modalRecommendedDept" class="dept-val">ATM Operations</span>
+                        </div>
+                        <div class="dept-route-card priority">
+                            <span class="dept-lbl">SLA escalation priority</span>
+                            <span id="modalEscalationPriority" class="dept-val immediate">IMMEDIATE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="modal-row full-width">
+                    <div class="modal-box full-width flex-col">
+                        <h3>Step-by-Step Resolution Procedures</h3>
+                        <ol id="modalSolvingSteps" class="modal-steps-list">
+                            <!-- Populated list -->
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script triggers -->
+    <script src="/static/dashboard/app.js"></script>
+</body>
+</html>

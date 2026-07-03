@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SentiWise - Advanced Analysis Pipeline</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#6366f1',
+                        secondary: '#8b5cf6',
+                        darkbg: '#0f172a',
+                        cardbg: '#1e293b'
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <!-- ECharts -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-darkbg text-slate-200 font-sans antialiased overflow-x-hidden">
+
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 z-[100] bg-darkbg flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="relative w-24 h-24 mb-4">
+            <div class="absolute inset-0 border-t-4 border-primary rounded-full animate-spin"></div>
+            <div class="absolute inset-2 border-r-4 border-secondary rounded-full animate-spin animation-delay-150"></div>
+            <div class="absolute inset-4 border-b-4 border-green-400 rounded-full animate-spin animation-delay-300"></div>
+        </div>
+        <h2 class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary mb-2 animate-pulse">Initializing SentiWise...</h2>
+        <p class="text-sm text-slate-400" id="loading-text">Loading dashboard data...</p>
+    </div>
+
+    <div class="flex h-screen overflow-hidden">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-cardbg border-r border-slate-700 flex-shrink-0 transition-transform duration-300 transform -translate-x-full md:translate-x-0 absolute md:relative z-20 h-full" id="sidebar">
+            <div class="p-6 flex items-center justify-between">
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-secondary">SentiWise</h1>
+                <button class="md:hidden text-slate-400 hover:text-white" onclick="toggleSidebar()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            
+            <nav class="mt-6 px-4">
+                <a href="#" class="flex items-center px-4 py-3 bg-primary bg-opacity-10 text-primary rounded-lg mb-2 transition-colors">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg>
+                    Dashboard
+                </a>
+                <a href="#reviews-section" class="flex items-center px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-lg mb-2 transition-colors">
+                    <svg class="w-5 h-5 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    Review Explorer
+                </a>
+            </nav>
+
+            <div class="absolute bottom-0 w-full p-4 border-t border-slate-700">
+                <p class="text-xs text-slate-500 text-center">Powered by local AI</p>
+                <button onclick="processBatch()" class="mt-2 w-full py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors" id="processBtn">Run NLP Pipeline</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
+            <!-- Header -->
+            <header class="bg-cardbg border-b border-slate-700 py-4 px-6 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+                <div class="flex items-center">
+                    <button class="md:hidden mr-4 text-slate-400 hover:text-white" onclick="toggleSidebar()">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                    </button>
+                    <h2 class="text-xl font-semibold">Overview Analytics</h2>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="statusIndicator" class="flex items-center text-sm text-slate-400">
+                        <span class="relative flex h-3 w-3 mr-2">
+                          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                        </span>
+                        System Online
+                    </div>
+                </div>
+            </header>
+
+            <!-- Dashboard Content -->
+            <div class="p-6 flex-1 space-y-6">
+                
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-cardbg rounded-xl p-6 shadow-lg border border-slate-700 transform transition hover:-translate-y-1">
+                        <div class="text-slate-400 text-sm font-medium mb-1">Total Reviews</div>
+                        <div class="text-3xl font-bold" id="kpi-total">--</div>
+                    </div>
+                    <div class="bg-cardbg rounded-xl p-6 shadow-lg border border-slate-700 transform transition hover:-translate-y-1">
+                        <div class="text-slate-400 text-sm font-medium mb-1">Average Rating</div>
+                        <div class="text-3xl font-bold text-yellow-400" id="kpi-rating">--</div>
+                    </div>
+                    <div class="bg-cardbg rounded-xl p-6 shadow-lg border border-slate-700 transform transition hover:-translate-y-1">
+                        <div class="text-slate-400 text-sm font-medium mb-1">Positive Sentiment</div>
+                        <div class="text-3xl font-bold text-green-400" id="kpi-positive">--</div>
+                    </div>
+                    <div class="bg-cardbg rounded-xl p-6 shadow-lg border border-slate-700 transform transition hover:-translate-y-1">
+                        <div class="text-slate-400 text-sm font-medium mb-1">Top Issue</div>
+                        <div class="text-xl font-bold text-red-400 mt-2 truncate" id="kpi-issue">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- AI Insights Panel -->
+                <div class="bg-gradient-to-r from-primary/20 to-secondary/20 rounded-xl p-6 border border-primary/30 relative overflow-hidden">
+                    <div class="absolute -right-10 -top-10 text-primary opacity-10">
+                        <svg class="w-48 h-48" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a8 8 0 100 16 8 8 0 000-16zm1 11H9v-2h2v2zm0-4H9V5h2v4z"></path></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-white mb-2 flex items-center">
+                        <svg class="w-5 h-5 mr-2 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                        Mistral AI Executive Summary
+                    </h3>
+                    <div id="ai-summary" class="text-slate-300 text-sm leading-relaxed min-h-[60px] flex items-center">
+                        <div class="animate-pulse flex space-x-2 w-full">
+                            <div class="h-2 bg-slate-600 rounded w-full"></div>
+                            <div class="h-2 bg-slate-600 rounded w-5/6"></div>
+                        </div>
+                    </div>
+                    <button onclick="fetchSummary(true)" class="mt-4 text-xs bg-primary/20 hover:bg-primary/40 text-primary px-3 py-1 rounded transition-colors">Generate New Insight</button>
+                </div>
+
+                <!-- Charts Row 1 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div class="bg-cardbg rounded-xl p-6 shadow-lg border border-slate-700">
+                        <h3 class="text-lg font-semibold mb-4">Sentiment Distribution</h3>
+                        <div id="chart-sentiment" class="w-full h-72"></div>
+                    </div>
+                    <div class="bg-cardbg rounded-xl p-6 shadow-lg border border-slate-700">
+                        <h3 class="text-lg font-semibold mb-4">Review Volume Trend</h3>
+                        <div id="chart-trend" class="w-full h-72"></div>
+                    </div>
+                </div>
+
+                <!-- Reviews Table -->
+                <div id="reviews-section" class="bg-cardbg rounded-xl shadow-lg border border-slate-700 overflow-hidden">
+                    <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold">Review Explorer</h3>
+                        <div class="flex space-x-2">
+                            <select id="filter-bu" class="bg-slate-800 border border-slate-600 text-sm rounded px-3 py-1 text-white" onchange="fetchReviews()">
+                                <option value="">All Business Units</option>
+                                <option value="Banking">Banking</option>
+                                <option value="Telecom">Telecom</option>
+                                <option value="SaaS">SaaS</option>
+                                <option value="E-commerce">E-commerce</option>
+                                <option value="Food Delivery">Food Delivery</option>
+                            </select>
+                            <select id="filter-sentiment" class="bg-slate-800 border border-slate-600 text-sm rounded px-3 py-1 text-white" onchange="fetchReviews()">
+                                <option value="">All Sentiments</option>
+                                <option value="Positive">Positive</option>
+                                <option value="Negative">Negative</option>
+                                <option value="Mixed">Mixed</option>
+                                <option value="Sarcastic">Sarcastic</option>
+                                <option value="Toxic">Toxic</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="bg-slate-800/50 text-xs uppercase text-slate-400">
+                                    <th class="py-3 px-6 font-medium">Date</th>
+                                    <th class="py-3 px-6 font-medium">Business Unit</th>
+                                    <th class="py-3 px-6 font-medium">Review</th>
+                                    <th class="py-3 px-6 font-medium">Rating</th>
+                                    <th class="py-3 px-6 font-medium">AI Sentiment</th>
+                                    <th class="py-3 px-6 font-medium">Toxicity</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reviews-table-body" class="text-sm divide-y divide-slate-700/50">
+                                <!-- Reviews injected here -->
+                                <tr><td colspan="6" class="text-center py-8 text-slate-500">Loading reviews...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Review Modal -->
+    <div id="reviewModal" class="fixed inset-0 z-50 bg-black/60 hidden items-center justify-center backdrop-blur-sm">
+        <div class="bg-cardbg rounded-xl border border-slate-600 w-full max-w-2xl mx-4 overflow-hidden shadow-2xl transform scale-95 transition-transform duration-300" id="reviewModalContent">
+            <div class="p-6 border-b border-slate-700 flex justify-between items-center">
+                <h3 class="text-lg font-bold">Review Details</h3>
+                <button onclick="closeModal()" class="text-slate-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div class="bg-slate-800/50 p-4 rounded-lg border border-slate-700/50">
+                    <p id="modal-text" class="text-lg italic text-slate-300">"..."</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-slate-500 block">Customer</span>
+                        <span id="modal-customer" class="font-medium text-white">-</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-500 block">Product</span>
+                        <span id="modal-product" class="font-medium text-white">-</span>
+                    </div>
+                </div>
+                
+                <h4 class="text-sm font-semibold text-slate-400 uppercase tracking-wider mt-6 mb-2 border-b border-slate-700 pb-1">AI Analysis</h4>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="bg-slate-800 rounded p-3 text-center">
+                        <span class="text-xs text-slate-500 block mb-1">Sentiment</span>
+                        <span id="modal-sentiment" class="font-bold">-</span>
+                    </div>
+                    <div class="bg-slate-800 rounded p-3 text-center">
+                        <span class="text-xs text-slate-500 block mb-1">Emotion</span>
+                        <span id="modal-emotion" class="font-bold">-</span>
+                    </div>
+                    <div class="bg-slate-800 rounded p-3 text-center">
+                        <span class="text-xs text-slate-500 block mb-1">Intent</span>
+                        <span id="modal-intent" class="font-bold">-</span>
+                    </div>
+                    <div class="bg-slate-800 rounded p-3 text-center">
+                        <span class="text-xs text-slate-500 block mb-1">Toxicity</span>
+                        <span id="modal-toxicity" class="font-bold">-</span>
+                    </div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-slate-700 bg-slate-800/30 text-right">
+                <button onclick="closeModal()" class="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-sm transition-colors">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

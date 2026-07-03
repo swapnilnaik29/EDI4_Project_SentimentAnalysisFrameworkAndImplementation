@@ -1,0 +1,78 @@
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# =========================
+# Virtual Environments
+# =========================
+env/
+venv/
+.venv/
+ENV/
+
+# =========================
+# Jupyter Notebook
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# VS Code
+# =========================
+.vscode/
+.history/
+
+# =========================
+# OS files
+# =========================
+.DS_Store
+Thumbs.db
+
+# =========================
+# Logs
+# =========================
+*.log
+
+# =========================
+# HuggingFace / Model Cache
+# =========================
+.cache/
+hf_cache/
+*.safetensors
+*.bin
+*.pt
+*.ckpt
+
+# =========================
+# Data files (optional)
+# Keep if datasets are large
+# =========================
+data/*.csv
+data/*.json
+
+# =========================
+# Results / outputs
+# =========================
+results/
+outputs/
+
+# =========================
+# Temporary files
+# =========================
+*.tmp
+*.temp
+
+# =========================
+# Python packaging
+# =========================
+build/
+dist/
+*.egg-info/
+
+# =========================
+# Environment variables
+# =========================
+.env
+.env.*

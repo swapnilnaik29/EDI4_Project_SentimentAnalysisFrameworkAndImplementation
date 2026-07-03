@@ -1,0 +1,47 @@
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0f172a; 
+}
+
+::-webkit-scrollbar-thumb {
+    background: #334155; 
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #475569; 
+}
+
+/* Micro-animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* Table hover row effect */
+tbody tr {
+    transition: all 0.2s ease-in-out;
+}
+
+tbody tr:hover {
+    transform: scale(1.005);
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    z-index: 10;
+    position: relative;
+    background-color: rgba(99, 102, 241, 0.05);
+}
+
+/* Modal backdrop blur */
+.backdrop-blur-sm {
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}

@@ -1,0 +1,87 @@
+========================================================================
+             BANK COMPLAINT INTELLIGENCE SYSTEM (APEX INSIGHT)
+========================================================================
+
+What exactly is this?
+--------------------
+Apex Insight is an AI-driven, real-time Banking Complaint Intelligence Dashboard 
+and Automatic Routing System. It acts as an operations control center for bank 
+administrators, helping them ingest, analyze, prioritize, cluster, and route 
+customer complaints automatically as they are submitted.
+
+The primary goal of this system is to leverage Natural Language Processing (NLP) 
+and Machine Learning (ML) to replace manual triage of customer tickets, 
+minimizing operational overhead and accelerating SLA resolution times.
+
+
+Core Components
+---------------
+1. CUSTOMER COMPLAINT PORTAL (Frontend Submission Portal)
+   - A clean, user-friendly interface accessible at `/submit` where customers 
+     can submit complaints with details like Customer Tier (Regular, Premium, 
+     Business, Student, Senior Citizen) and Inbound Channel Source (Offline, 
+     Mobile App, Website, Support Email, Social Media).
+
+2. COMMAND CENTER DASHBOARD (Frontend Analytics & Control Panel)
+   - A premium administrative control panel accessible at `/dashboard` built 
+     using HTML, JavaScript, and vanilla CSS with rich visuals, animated 
+     micro-interactions, and support for Light and Dark modes.
+   - Leverages Chart.js for real-time operations charts (volume trends, dynamic 
+     topic distribution, sentiment, severity, channel splits).
+   - Ingested Complaints Ledger: A tabular feed of complaints with multi-column 
+     frontend-only sorting (sorting by Date, Client Tier, Topic, Summary, Severity, 
+     and Intensity) and pagination.
+   - Dynamic Topic drill-down view showing cluster vocabulary keywords and tickets.
+   - Live stream activity feed updating instantly via WebSocket connection.
+
+3. WEB APP BACKEND & REST API (FastAPI)
+   - Built on FastAPI (Python) and SQLite database.
+   - Exposes REST endpoints for submitting complaints (`POST /api/complaints`), 
+     fetching paginated lists with filters (`GET /api/complaints`), and retrieval 
+     of live operations metrics (`GET /api/analytics`).
+   - Integrates WebSockets to push live submissions instantly to connected dashboards.
+
+4. COGNITIVE PIPELINE (AI Triage Engine)
+   - Cleaners: Strips punctuation, normalizes whitespace, and parses input fields.
+   - Text Embedding: Uses SentenceTransformers (`all-MiniLM-L6-v2`) locally to 
+     generate high-dimensional semantic embeddings of the complaint texts.
+   - Sentiment & Urgency Intensity Extraction: Performs classification to output 
+     sentiment (Positive/Neutral/Negative) and numerical intensity ratings.
+   - LLM Reasoning (Ollama/Fallback): Prompts a local LLM (like Mistral/Llama) or 
+     runs a high-fidelity pattern matching pipeline to output:
+       - An executive AI Summary (complaint abstract)
+       - The Root Cause of the customer's issue
+       - Concrete resolution Steps to solve the issue
+       - A Recommended Department (e.g. Loans, Card Operations, Billing, Tech Support)
+       - Escalation Priority rating (Low, Medium, High, Immediate)
+   - SLA Severity Categorization: Assigns a severity level (Low, Medium, High, 
+     Critical) based on Customer Tier and Intensity.
+
+5. DYNAMIC CLUSTERING ENGINE (Topic Modeling)
+   - Computes average embedding vectors (centroids) for existing topics in the DB.
+   - Maps new incoming complaints to the closest topic centroid based on Cosine Similarity.
+   - RETRAINING PIPELINE: Retrains topic modeling on the entire database 
+     asynchronously (using KMeans or BERTopic) to automatically discover new pain points, 
+     assigning them a topic name and keywords.
+
+
+How It Works (Step-by-Step Flow)
+--------------------------------
+1. Ingestion: A customer fills out a ticket on the submit portal.
+2. AI Pipeline Execution: The backend receives the request and runs the text through 
+   the AI extraction script. It normalizes text, computes vectors, categorizes 
+   sentiment/intensity, and extracts routing/priority details.
+3. Nearest-Topic Assignment: The system calculates cosine similarity between the 
+   complaint's embedding and all active topic cluster centroids. If similarity exceeds 
+   a threshold, the complaint is assigned to that topic and inherits its keywords. 
+   Otherwise, it is marked as "Uncategorized".
+4. Database Storage: The finalized complaint record, along with all AI-derived metadata, 
+   is persisted to the SQLite database.
+5. Real-Time Broadcast: The backend posts a WebSocket message to all active dashboard 
+   clients containing the new complaint.
+6. Frontend Ingestion & Sorting: The dashboard receives the WebSocket message, increments 
+   counters, flashes live stream feeds, and appends the complaint. Users can click column 
+   headers to sort complaints instantly on the frontend using JS in-memory sorting.
+7. Background Retraining: Admin can click "Retrain AI Topics". This runs an asynchronous 
+   clustering task on the backend, clustering all DB records into new mathematical groups, 
+   updating the centroids, and refreshing the dynamic topic lists when done.

@@ -1,0 +1,119 @@
+# SentiWise Framework: Technical Specification
+
+This document provides a comprehensive technical breakdown of the SentiWise framework, detailing the technologies used, the rationale behind these choices, the underlying mechanics of each feature, and instructions for running the project.
+
+---
+
+## 1. Project Overview & Architecture
+
+SentiWise is a modular Python framework designed for automated processing, analysis, and visualization of textual data (specifically user reviews or feedback). The primary goal is to provide a unified, developer-friendly pipeline that processes raw CSV data into structured insights, abstracting away complex data manipulation and machine learning logic.
+
+### Design Paradigm: The Fluent API (`SentiData`)
+The core architectural choice is the encapsulation of data and logic within the `SentiData` class.
+1. **ModelManager**: Loads HuggingFace pipelines for Sentiment Analysis, Toxicity (`martin-ha/toxic-comment-model`), and NER (`dslim/bert-base-NER`).
+2. **Super Extractor**: Uses Ollama (Mistral) to extract ABSA, Intent, Emotion, Sarcasm, and Topic in a single JSON-structured prompt.
+3. **SentiData**: The core DataFrame wrapper that exposes methods like `.analyze_sentiment()`, `.detect_toxicity()`, `.extract_ner()`, and `.extract_advanced()`.
+4. **Plotter**: Handles visualizations, including Time-Series sentiment tracking.
+
+### The Pipeline Chain
+
+```python
+data.analyze_sentiment().detect_toxicity().extract_ner().extract_advanced(model="mistral")
+```. When data needs to be retrieved (e.g., via `.head()`), it is returned as standard Python lists and dictionaries, ensuring complete abstraction from Pandas.
+
+---
+
+## 2. Technologies Used & Rationale
+
+| Technology | Purpose | Why It Was Chosen |
+|---|---|---|
+| **Python 3.10+** | Core Language | Standard for data science and machine learning. |
+| **Pandas** | Internal Data Manipulation | Highly efficient for tabular data operations (filtering, groupby). Abstracted from the user to reduce dependency overhead in their code. |
+| **HuggingFace Transformers** | Sentiment Analysis | Provides state-of-the-art, pre-trained NLP models. We utilize the `pipeline` API for out-of-the-box accuracy without manual fine-tuning. |
+| **SentenceTransformers** | Text Embeddings | Converts text into dense vector representations. Specifically optimized for semantic similarity, crucial for accurate clustering. |
+| **Scikit-Learn** | Topic Clustering (KMeans) | Highly optimized and reliable algorithm for clustering vector embeddings into distinct topic groups. |
+| **Ollama** | Text Summarization | Replaced HuggingFace T5 models due to memory/pipeline compatibility issues. Ollama allows running powerful LLMs (like Llama 3) locally via REST API, providing vastly superior generative summaries without cloud costs. |
+| **Matplotlib / Seaborn** | Data Visualization | Industry standard for statistical plots. Wrapped entirely inside `plotter.py` so users don't need to manually invoke figure rendering or plot configuration. |
+
+---
+
+## 3. How Each Feature Works
+
+### A. Data Ingestion & Preprocessing
+- **Mechanics:** The `SentiData` class is instantiated with a file path to a CSV. It uses Pandas to read the file, validates the schema (ensuring necessary columns like `content` and `timestamp` exist), and runs a text cleaner (removing URLs, special characters, and normalizing whitespace).
+
+### B. Sentiment Analysis
+- **Mechanics:** The `predict_sentiment` function initializes a HuggingFace `pipeline("sentiment-analysis")` using the `cardiffnlp/twitter-roberta-base-sentiment` model. This model is specifically trained on social media text, making it highly accurate for reviews. The content list is passed in, and it returns a list of labels (Positive, Neutral, Negative) which are mapped back to the internal dataset.
+
+### C. Topic Extraction
+- **Mechanics:** 
+  1. **Embedding:** The `SentenceTransformer` model (`all-MiniLM-L6-v2`) converts every text review into a high-dimensional vector.
+  2. **Clustering:** Scikit-learn's `KMeans` groups these vectors into $K$ clusters (default 3).
+  3. **Labeling:** A TF-IDF Vectorizer analyzes the text within each cluster to extract the most prominent unigrams/bigrams, automatically assigning a human-readable topic name (e.g., "battery", "delivery") to each cluster.
+
+### D. Topic-Wise Sentiment Matrix
+- **Mechanics:** Uses Pandas `groupby` internally to pivot the data by `review_topic` and `sentiment`. It calculates the frequency of each sentiment within each topic and returns the result as a standard Python dictionary matrix, allowing users to see exactly what users dislike or like about specific features.
+
+### E. Summarization (Ollama)
+- **Mechanics:** 
+  - Instead of utilizing heavy local memory for generation, the `summarizer.py` script sends a `POST` request containing a summarization prompt to a local Ollama instance (`http://localhost:11434/api/generate`).
+  - **Graceful Fallback:** If the Ollama server is offline or unreachable, an exception block catches the `requests` error and falls back to text truncation (returning the first 120 characters), ensuring the data pipeline does not crash.
+
+### F. Visualization
+- **Mechanics:** When `data.visualize("bar", "sentiment")` is called, the system extracts the target column into a standard Python list. The `plotter.py` script calculates the frequency distribution using Python's `collections.Counter` and renders a Seaborn bar plot automatically.
+
+---
+
+## 4. How to Run the Project
+
+### Prerequisites
+1. **Python:** Ensure Python 3.8+ is installed.
+2. **Ollama (Optional but Recommended):** Install Ollama from [ollama.com](https://ollama.com/) and download the Llama 3 model by running:
+   ```bash
+   ollama run mistral
+   ```
+
+### Setup Instructions
+1. **Clone and Setup Virtual Environment:**
+   ```bash
+   python -m venv env
+   # On Windows:
+   env\Scripts\activate
+   # On Mac/Linux:
+   source env/bin/activate
+   ```
+2. **Install Dependencies:**
+   Install the project in editable mode so your IDE recognizes the `sentiwise` module globally:
+   ```bash
+   pip install -e .
+   ```
+   *(Note: The `requirements.txt` is also available, but installing via `setup.py` using `-e .` is the recommended method for development).*
+
+### Execution
+You can run the framework using the provided demo script or the Jupyter Notebook:
+
+**Running the Python Script:**
+```bash
+python examples/demo.py
+```
+
+**Running the Jupyter Notebook:**
+```bash
+pip install jupyter
+jupyter notebook notebooks/sample.ipynb
+```
+
+**Custom Implementation Example:**
+```python
+from sentiwise.core.senti_data import SentiData
+
+# Initialize the dataset
+data = SentiData("data/sample_reviews.csv")
+
+# Run the full pipeline in one command
+data.analyze_sentiment().extract_topics(size=3).summarize(model="mistral")
+
+# View the insights
+print(data.topic_sentiment())
+data.visualize("bar", "sentiment")
+```

@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Bank | Secure Complaint Submission Portal</title>
+    <link rel="stylesheet" href="/static/shared/css/variables.css">
+    <link rel="stylesheet" href="/static/submit/style.css">
+    <!-- Lucide Icons for premium visual indicator tags -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="glow-container">
+        <div class="glow-sphere glow-1"></div>
+        <div class="glow-sphere glow-2"></div>
+    </div>
+
+    <div class="page-container">
+        <!-- Brand Header -->
+        <header class="navbar">
+            <div class="brand">
+                <i data-lucide="shield-check" class="brand-icon"></i>
+                <span class="brand-text">APEX BANK</span>
+                <span class="brand-badge">SUPPORT</span>
+            </div>
+            <a href="/dashboard" class="dashboard-link">
+                <i data-lucide="line-chart"></i>
+                <span>Staff Intelligence Dashboard</span>
+            </a>
+        </header>
+
+        <!-- Form Card -->
+        <main class="main-content">
+            <div class="submission-card">
+                <div class="card-header">
+                    <h2>Submit Secure Support Ticket</h2>
+                    <p>Describe your issue below. Our AI-driven routing engine will immediately analyze, prioritize, and dispatch your ticket to the specialized department.</p>
+                </div>
+
+                <form id="complaintForm" class="complaint-form">
+                    <!-- Text Area -->
+                    <div class="form-group full-width">
+                        <label for="complaintText">
+                            <i data-lucide="message-square"></i> What happened? Describe the issue in detail *
+                        </label>
+                        <textarea id="complaintText" placeholder="e.g. I attempted to withdraw $100 from the ATM outside the main branch. My account was debited, but no cash was dispensed..." required></textarea>
+                        <div class="character-counter">Min 10 characters required</div>
+                    </div>
+
+                    <!-- Metadata Fields Grid -->
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="userType">
+                                <i data-lucide="user"></i> Customer Relationship Tier *
+                            </label>
+                            <select id="userType" required>
+                                <option value="" disabled selected>Select relationship...</option>
+                                <option value="regular">Regular Savings Account</option>
+                                <option value="premium">Premium Wealth / Platinum Tier</option>
+                                <option value="business">Corporate / Business Account</option>
+                                <option value="senior citizen">Senior Citizen Account</option>
+                                <option value="student">Student/Basic Savings</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="complaintSource">
+                                <i data-lucide="globe"></i> Inbound Channel Source *
+                            </label>
+                            <select id="complaintSource" required>
+                                <option value="" disabled selected>Select inbound channel...</option>
+                                <option value="mobile app">Mobile Banking App</option>
+                                <option value="website">Web Portal</option>
+                                <option value="offline">In-Branch / Physical ATM</option>
+                                <option value="email">Direct Support Email</option>
+                                <option value="social media">Social Media Handle (Twitter/X, etc.)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="location">
+                                <i data-lucide="map-pin"></i> Branch/ATM/City Location
+                            </label>
+                            <input type="text" id="location" placeholder="e.g. Boston main branch, ATM #432">
+                        </div>
+
+                        <div class="form-group date-time-group">
+                            <div class="sub-group">
+                                <label for="complaintDate">Date</label>
+                                <input type="date" id="complaintDate">
+                            </div>
+                            <div class="sub-group">
+                                <label for="complaintTime">Time</label>
+                                <input type="time" id="complaintTime">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="form-actions">
+                        <button type="submit" id="submitBtn" class="submit-btn">
+                            <span class="btn-text">Submit Support Ticket</span>
+                            <span class="btn-loader spinner" style="display: none;"></span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </main>
+    </div>
+
+    <!-- Notification Toast Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="/static/submit/app.js"></script>
+</body>
+</html>

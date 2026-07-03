@@ -1,0 +1,15 @@
+fastapi<0.111.0
+uvicorn
+pandas
+numpy
+scikit-learn
+transformers
+bertopic
+sentence-transformers
+spacy
+ollama
+pydantic
+python-multipart
+torch
+textblob
+vaderSentiment
